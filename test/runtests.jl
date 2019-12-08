@@ -1,5 +1,4 @@
-using Compat
-import Compat.String
+
 
 tests = [
     "edgelist",
@@ -20,7 +19,9 @@ tests = [
     "cliques",
     "random",
     "generators",
-    "maximum_adjacency_visit" ]
+    "maximum_adjacency_visit",
+    "issue_related_tests",
+    "inclist_dict_delete" ]
 
 
 for t in tests

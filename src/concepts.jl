@@ -5,10 +5,10 @@
 #################################################
 
 ### the root type of all graphs
-abstract AbstractGraph{V, E}
+abstract type AbstractGraph{V, E} end
 
-vertex_type{V,E}(g::AbstractGraph{V,E}) = V
-edge_type{V,E}(g::AbstractGraph{V,E}) = E
+vertex_type(g::AbstractGraph{V,E}) where {V,E} = V
+edge_type(g::AbstractGraph{V,E}) where {V,E} = E
 
 ### concepts
 

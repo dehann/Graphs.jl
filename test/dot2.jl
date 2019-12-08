@@ -23,7 +23,6 @@
 # NOTE: if to_dot is modified to emit lines with .dot comments, these tests
 #       mail fail erroneously....
 
-using Compat
 
 comRX = Base.compile(r"^[^\[]+\[([^\[]+)\]\h*$"x)
 function   rewriteAttrs(a::AbstractString)
@@ -31,8 +30,8 @@ function   rewriteAttrs(a::AbstractString)
      if m!=nothing
          attrs = m.captures[1]
          offset= m.offsets[1]
-         chksum= mod(reduce(+, 0::Int,
-                            map(x->convert(Int,x),collect(attrs))  ), 25)
+         chksum= mod(reduce(+,
+                            map(x->convert(Int,x),collect(attrs)), init=0  ), 25)
          ch = convert(Char, convert(Int,'a') - 1 + chksum)
          a[1:offset-1] * "$ch" * a[ offset+length(attrs) : end ]
      else
@@ -45,7 +44,7 @@ function  check_same_dot(a::AbstractString,b::AbstractString)
     sb=sort( map( rewriteAttrs, split( b, "\n")))
     la = map(rewriteAttrs,sa)
     lb = map(rewriteAttrs,sb)
-    return   la==lb 
+    return   la==lb
 end
 
 
@@ -53,7 +52,7 @@ end
 module testDOT1
 
 using Graphs
-using Base.Test
+using Test
 
 
 ###########
@@ -62,7 +61,7 @@ using Base.Test
 #     and no vertex attributes
 ###########
 
-### 1) graph without node attributes 
+### 1) graph without node attributes
 sgd = simple_graph(3)
 
 @test @show implements_edge_list(sgd)==true
@@ -74,7 +73,7 @@ dot1=to_dot(sgd)
 println(dot1)
 @test Main.check_same_dot(dot1,"digraph graphname {\n1\n2\n3\n4\n}\n")
 
-### 2) graph without node attributes but with some edges 
+### 2) graph without node attributes but with some edges
 add_edge!(sgd,1,3)
 add_edge!(sgd,3,1)
 add_edge!(sgd,2,3)
@@ -89,8 +88,8 @@ end # module testDOT1
 
 module testDOT2
 
-using Graphs, Compat
-using Base.Test
+using Graphs
+using Test
 
 ###########
 #     test dot output for graphs for which
@@ -98,12 +97,12 @@ using Base.Test
 #     and vertex attributes
 ###########
 
-immutable MyVtxType
+struct MyVtxType
     name::AbstractString
 end
 
 import Graphs.attributes
-function Graphs.attributes{G<:AbstractGraph}(vtx::MyVtxType,g::G)
+function Graphs.attributes(vtx::MyVtxType,g::G) where {G<:AbstractGraph}
      rd = Graphs.AttributeDict()
      rd["label"]=vtx.name
      rd["color"]="bisque"
@@ -138,7 +137,7 @@ agu = Graphs.graph( map( MyVtxType,[ "a", "b", "c","d"]), Graphs.Edge{MyVtxType}
                       is_directed=false)
 
 vl = agu.vertices
-    
+
 add_edge!(agu, vl[1], vl[3] )
 add_edge!(agu,  vl[2], vl[3])
 

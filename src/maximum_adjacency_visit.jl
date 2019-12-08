@@ -7,19 +7,26 @@
 #
 #################################################
 
-type MaximumAdjacency <: AbstractGraphVisitAlgorithm
+mutable struct MaximumAdjacency <: AbstractGraphVisitAlgorithm
 end
 
-abstract AbstractMASVisitor <: AbstractGraphVisitor
+abstract type AbstractMASVisitor <: AbstractGraphVisitor end
+# @static if VERSION > v"0.6-"
+#   abstract type AbstractMASVisitor <: AbstractGraphVisitor end
+# else
+#   abstract AbstractMASVisitor <: AbstractGraphVisitor
+#   import Base.Collections.PriorityQueue
+# end
 
-function maximum_adjacency_visit_impl!{V,E,W}(
+function maximum_adjacency_visit_impl!(
   graph::AbstractGraph{V,E},	                      # the graph
-  pq::Collections.PriorityQueue{V,W},               # priority queue
+  pq::PriorityQueue{V,W},                           # priority queue
   visitor::AbstractMASVisitor,                      # the visitor
-  colormap::Vector{Int})                            # traversal status
+  colormap::Vector{Int}) where {V,E,W}              # traversal status
 
   while !isempty(pq)
-    u = Collections.dequeue!(pq)
+    u = DataStructures.dequeue!(pq)
+    # u = VERSION > v"0.6-" ? DataStructures.dequeue!(pq) : Collections.dequeue!(pq)
     discover_vertex!(visitor, u)
     for e in out_edges(u, graph)
       examine_edge!(visitor, e, 0)
@@ -34,19 +41,23 @@ function maximum_adjacency_visit_impl!{V,E,W}(
 
 end
 
-function traverse_graph{V,E,W}(
+function traverse_graph(
   graph::AbstractGraph{V,E},
   alg::MaximumAdjacency,
   s::V,
   visitor::AbstractMASVisitor,
   colormap::Vector{Int},
-  ::Type{W})
+  ::Type{W}) where {V,E,W}
 
-  if VERSION > v"0.4.0-"
-    pq = Collections.PriorityQueue(V,W,Base.Order.Reverse)
-  else
-    pq = Collections.PriorityQueue{V,W}(Base.Order.Reverse)
-  end
+  # @show Base.Order.Reverse
+  # @show Base.Order.ReverseOrdering
+  # PriorityQueue{K, V}(::Type{K}, ::Type{V}, o::Ordering) is deprecated, use PriorityQueue{K, V, typeof(o)}(o)
+  # pq = DataStructures.PriorityQueue(V,W,Base.Order.Reverse)
+  # pq = DataStructures.PriorityQueue(V,W,Base.Order.Reverse)
+  # @show pq
+  pq = DataStructures.PriorityQueue{V,W}(Base.Order.Reverse)
+  # @show pq
+  # pq = DataStructures.PriorityQueue{V,W,Base.Order.Reverse}()
 
   # Set number of visited neighbours for all vertices to 0
   for v in vertices(graph)
@@ -61,7 +72,7 @@ function traverse_graph{V,E,W}(
   pq[s] = one(W)
 
   #start traversing the graph
-  maximum_adjacency_visit_impl!(graph, pq, visitor, colormap)	
+  maximum_adjacency_visit_impl!(graph, pq, visitor, colormap)
 end
 
 
@@ -78,7 +89,7 @@ end
 #
 #################################################
 
-type MinCutVisitor{G<:AbstractGraph,V,W} <: AbstractMASVisitor
+mutable struct MinCutVisitor{G<:AbstractGraph,V,W} <: AbstractMASVisitor
   graph::G
   parities::Vector{Bool}
   colormap::Vector{Int}
@@ -89,7 +100,7 @@ type MinCutVisitor{G<:AbstractGraph,V,W} <: AbstractMASVisitor
   vertices::Vector{V}
 end
 
-function MinCutVisitor{V,E,W}(graph::AbstractGraph{V,E}, edge_weights::AbstractEdgePropertyInspector{W})
+function MinCutVisitor(graph::AbstractGraph{V,E}, edge_weights::AbstractEdgePropertyInspector{W}) where {V,E,W}
   n = num_vertices(graph)
   parities = falses(n)
   MinCutVisitor{typeof(graph),V,W}(graph, parities, zeros(n), Inf, 0, 0, edge_weights, V[])
@@ -114,7 +125,7 @@ function examine_edge!(vis::MinCutVisitor, e, color::Int)
     vis.cutweight -= ew
   else
     vis.cutweight += ew
-  end  
+  end
 end
 
 function close_vertex!(vis::MinCutVisitor, v)
@@ -137,7 +148,7 @@ end
 #
 #################################################
 
-type MASVisitor{V,W} <: AbstractMASVisitor
+mutable struct MASVisitor{V,W} <: AbstractMASVisitor
   io::IO
   vertices::Vector{V}
   edge_weights::AbstractEdgePropertyInspector{W}
@@ -163,9 +174,9 @@ end
 #
 #################################################
 
-function min_cut{V,E,W}(
+function min_cut(
   graph::AbstractGraph{V,E},
-  edge_weights::AbstractEdgePropertyInspector{W})
+  edge_weights::AbstractEdgePropertyInspector{W}) where {V,E,W}
 
   @graph_requires graph incidence_list vertex_list
   visitor = MinCutVisitor(graph, edge_weights)
@@ -176,9 +187,9 @@ function min_cut{V,E,W}(
   return( visitor.parities, visitor.bestweight)
 end
 
-function min_cut{V,E,W}(
+function min_cut(
   graph::AbstractGraph{V,E},
-  edge_weight_vec::Vector{W})
+  edge_weight_vec::Vector{W}) where {V,E,W}
 
   @graph_requires graph incidence_list vertex_list
 
@@ -191,25 +202,25 @@ function min_cut{V,E,W}(
   return( visitor.parities, visitor.bestweight)
 end
 
-function min_cut{V,E}(graph::AbstractGraph{V,E})
+function min_cut(graph::AbstractGraph{V,E}) where {V,E}
   m = num_edges(graph)
   min_cut(graph,ones(m))
 end
 
-function maximum_adjacency_visit{V,E,W}(graph::AbstractGraph{V,E}, edge_weights::AbstractEdgePropertyInspector{W}; log::Bool=false, io::IO=STDOUT)
-  visitor = MASVisitor(io, V[],edge_weights,log)  
+function maximum_adjacency_visit(graph::AbstractGraph{V,E}, edge_weights::AbstractEdgePropertyInspector{W}; log::Bool=false, io::IO=stdout) where {V,E,W}
+  visitor = MASVisitor(io, V[],edge_weights,log)
   traverse_graph(graph, MaximumAdjacency(), first(vertices(graph)), visitor, zeros(Int, num_vertices(graph)), W)
   visitor.vertices
 end
 
-function maximum_adjacency_visit{V,E,W}(graph::AbstractGraph{V,E}, edge_weight_vec::Vector{W}; log::Bool=false, io::IO=STDOUT)
+function maximum_adjacency_visit(graph::AbstractGraph{V,E}, edge_weight_vec::Vector{W}; log::Bool=false, io::IO=stdout) where {V,E,W}
   edge_weights = VectorEdgePropertyInspector(edge_weight_vec)
-  visitor = MASVisitor(io, V[],edge_weights,log)  
+  visitor = MASVisitor(io, V[],edge_weights,log)
   traverse_graph(graph, MaximumAdjacency(), first(vertices(graph)), visitor, zeros(Int, num_vertices(graph)), W)
   visitor.vertices
 end
 
-function maximum_adjacency_visit{V,E}(graph::AbstractGraph{V,E}; log::Bool=false, io::IO=STDOUT)
+function maximum_adjacency_visit(graph::AbstractGraph{V,E}; log::Bool=false, io::IO=stdout) where {V,E}
   m = num_edges(graph)
   maximum_adjacency_visit(graph,ones(m); log=log, io=io)
 end

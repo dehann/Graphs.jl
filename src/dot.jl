@@ -14,17 +14,17 @@ end
 function to_dot(graph::AbstractGraph, attrs::AttributeDict=AttributeDict())
     str = IOBuffer()
     to_dot(graph, str, attrs)
-    takebuf_string(str)
+    String(take!(str)) #takebuf_string(str)
 end
 
 # Write the dot representation of a graph to a stream.
-function to_dot{G<:AbstractGraph}(graph::G, stream::IO,attrs::AttributeDict=AttributeDict())
-    has_vertex_attrs = method_exists(attributes, (vertex_type(graph), G))
-    has_edge_attrs = method_exists(attributes, (edge_type(graph), G))
+function to_dot(graph::G, stream::IO,attrs::AttributeDict=AttributeDict()) where {G<:AbstractGraph}
+    has_vertex_attrs = hasmethod(attributes, (vertex_type(graph), G))
+    has_edge_attrs = hasmethod(attributes, (edge_type(graph), G))
 
     write(stream, "$(graph_type_string(graph)) graphname {\n")
     write(stream, "$(to_dot_graph(attrs))")
-    if implements_edge_list(graph) && implements_vertex_map(graph) 
+    if implements_edge_list(graph) && implements_vertex_map(graph)
         for vtx in  vertices(graph)
             attrs = has_vertex_attrs ?  "\t$(to_dot(attributes(vtx,graph)))" : ""
             write(stream,"$(vertex_index(vtx,graph))$attrs\n")
@@ -77,7 +77,7 @@ end
 
 to_dot(attr::AbstractString, value) = "\"$attr\"=\"$value\""
 
-to_dot(attr_tuple::@compat Tuple{String, Any}) = "\"$(attr_tuple[1])\"=\"$(attr_tuple[2])\""
+to_dot(attr_tuple::Tuple{String, Any}) = "\"$(attr_tuple[1])\"=\"$(attr_tuple[2])\""
 
 function graph_type_string(graph::AbstractGraph)
     is_directed(graph) ? "digraph" : "graph"
@@ -87,8 +87,16 @@ function edge_op(graph::AbstractGraph)
     is_directed(graph) ? "->" : "--"
 end
 
-function plot(g::AbstractGraph)
-    stdin, proc = open(`neato -Tx11`, "w")
+function plot(g::AbstractGraph;gviz_args="")
+    if !isequal(gviz_args,"")
+        # Provide the command line code for GraphViz directly
+        cla_list = split(gviz_args)
+        arg = `$cla_list`
+    else
+        # Default uses x11 window
+        arg = `neato -Tx11`
+    end
+    stdin, proc = open(arg, "w")
     to_dot(g, stdin)
     close(stdin)
 end

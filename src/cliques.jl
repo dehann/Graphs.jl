@@ -4,7 +4,7 @@
 #
 ##########################################################
 
-function maximal_cliques{V}(g::AbstractGraph{V})
+function maximal_cliques(g::AbstractGraph{V}) where {V}
     """
     Finds all maximal cliques of an undirected graph.
 
@@ -13,7 +13,7 @@ function maximal_cliques{V}(g::AbstractGraph{V})
     julia> add_edge!(g, 1, 2)
     julia> add_edge!(g, 2, 3)
     julia> maximal_cliques(g)
-    2-element Array{Array{Int64,N},1}:
+    2-element Array{Array{Int,N},1}:
      [2,3]
      [2,1]
 
@@ -51,7 +51,7 @@ function maximal_cliques{V}(g::AbstractGraph{V})
     union!(cand, keys(nnbrs))
     smallcand = setdiff(cand, pivotnbrs)
     done = Set{V}()
-    stack = @compat(Tuple{Set{V}, Set{V}, Set{V}})[]
+    stack = Tuple{Set{V}, Set{V}, Set{V}}[]
     clique_so_far = V[]
     cliques = Array{V}[]
 
@@ -83,7 +83,7 @@ function maximal_cliques{V}(g::AbstractGraph{V})
         end
         # Shortcut--only one node left!
         if isempty(new_done) && length(new_cand) == 1
-            push!(cliques, cat(1, clique_so_far, collect(new_cand)))
+            push!(cliques, cat(clique_so_far, collect(new_cand), dims=1))
             pop!(clique_so_far)
             continue
         end

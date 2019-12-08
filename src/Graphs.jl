@@ -1,7 +1,10 @@
-module Graphs
-using DataStructures, Compat
+isdefined(Base, :__precompile__) && __precompile__()
 
-import Base: start, done, next, show, ==, <
+module Graphs
+using DataStructures
+using SparseArrays
+
+import Base: show, ==, <
 import Base: length, isempty, size, getindex, isless
 
 export
@@ -32,6 +35,7 @@ export
     collect_edges, collect_weighted_edges,
 
     add_edge!, add_vertex!,
+    delete_vertex!,
 
     AbstractEdgePropertyInspector, VectorEdgePropertyInspector,
     ConstantEdgePropertyInspector, AttributeEdgePropertyInspector,

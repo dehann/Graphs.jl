@@ -1,6 +1,6 @@
 # The concept and trivial implementation of graph visitors
 
-abstract AbstractGraphVisitor
+abstract type AbstractGraphVisitor end
 
 # trivial implementation
 
@@ -21,12 +21,12 @@ examine_edge!(vis::AbstractGraphVisitor, e, color::Int) = nothing
 close_vertex!(vis::AbstractGraphVisitor, v) = nothing
 
 
-type TrivialGraphVisitor <: AbstractGraphVisitor
+mutable struct TrivialGraphVisitor <: AbstractGraphVisitor
 end
 
 
 # This is the common base for BreadthFirst and DepthFirst
-abstract AbstractGraphVisitAlgorithm
+abstract type AbstractGraphVisitAlgorithm end
 
 
 ###########################################################
@@ -37,25 +37,25 @@ abstract AbstractGraphVisitAlgorithm
 
 # List vertices by the order of being discovered
 
-type VertexListVisitor{V} <: AbstractGraphVisitor
+mutable struct VertexListVisitor{V} <: AbstractGraphVisitor
     vertices::Vector{V}
 
-    function VertexListVisitor(n::Integer=0)
-        vs = Array(V, 0)
+    function VertexListVisitor{V}(n::Integer=0) where {V}
+        vs = Array{V}(undef, 0)
         sizehint!(vs, n)
-        new(vs)
+        new{V}(vs)
     end
 end
 
-function discover_vertex!{V}(visitor::VertexListVisitor{V}, v::V)
+function discover_vertex!(visitor::VertexListVisitor{V}, v::V) where {V}
     push!(visitor.vertices, v)
     true
 end
 
-function visited_vertices{V,E}(
+function visited_vertices(
     graph::AbstractGraph{V,E},
     alg::AbstractGraphVisitAlgorithm,
-    sources)
+    sources) where {V,E}
 
     visitor = VertexListVisitor{V}(num_vertices(graph))
     traverse_graph(graph, alg, sources, visitor)
@@ -65,7 +65,7 @@ end
 
 # Print visit log
 
-type LogGraphVisitor{S<:IO} <: AbstractGraphVisitor
+mutable struct LogGraphVisitor{S<:IO} <: AbstractGraphVisitor
     io::S
 end
 
